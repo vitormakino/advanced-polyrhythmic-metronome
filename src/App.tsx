@@ -112,7 +112,7 @@ const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove }: PolyrhythmC
         {canRemove && (
           <button 
             onClick={onRemove}
-            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-zinc-600 hover:text-red-500"
+            className="absolute top-2 right-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1 text-zinc-600 hover:text-red-500"
           >
             <Trash2 size={12} />
           </button>
@@ -120,7 +120,7 @@ const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove }: PolyrhythmC
         
         <button 
           onClick={() => setShowSettings(!showSettings)}
-          className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-zinc-600 hover:text-zinc-300"
+          className="absolute top-2 left-2 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-1 text-zinc-600 hover:text-zinc-300"
         >
           <Settings2 size={12} />
         </button>

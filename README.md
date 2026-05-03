@@ -2,6 +2,8 @@
 
 A professional-grade rhythmic practice tool designed for musicians to master complex polyrhythms through precise audio timing and intuitive geometric visualization.
 
+**[🌐 Live Demo](https://vitormakino.github.io/advanced-polyrhythmic-metronome/)**
+
 ## 🚀 Key Features
 
 ### 1. Advanced Polyrhythm Engine
