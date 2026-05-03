@@ -129,9 +129,23 @@ const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove }: PolyrhythmC
 
         <span className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1 font-mono">Pulse {pulse.beats}</span>
         <div className="flex flex-col items-center gap-1">
-          <button onClick={() => handleBeatsChange(1)} className="text-zinc-400 hover:text-white p-1"><Plus size={14}/></button>
-          <span style={{ color: pulse.color }} className="text-3xl font-light tabular-nums">{pulse.beats}</span>
-          <button onClick={() => handleBeatsChange(-1)} className="text-zinc-400 hover:text-white p-1"><Minus size={14}/></button>
+          <button 
+            onClick={() => handleBeatsChange(1)} 
+            className="text-zinc-400 hover:text-white p-1"
+            aria-label="Increase Beats"
+            id="pulse-increase-beats"
+          >
+            <Plus size={14}/>
+          </button>
+          <span style={{ color: pulse.color }} className="text-3xl font-light tabular-nums pulse-beats-value">{pulse.beats}</span>
+          <button 
+            onClick={() => handleBeatsChange(-1)} 
+            className="text-zinc-400 hover:text-white p-1"
+            aria-label="Decrease Beats"
+            id="pulse-decrease-beats"
+          >
+            <Minus size={14}/>
+          </button>
         </div>
       </div>
 
