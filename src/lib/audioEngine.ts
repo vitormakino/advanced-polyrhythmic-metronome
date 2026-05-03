@@ -12,6 +12,7 @@ export interface PulseConfig {
   color: string;
   beatIntensities: number[]; // Array of intensities for each beat
   soundType: SoundType;
+  enabled?: boolean; // New property to allow muting
 }
 
 export class AudioEngine {
@@ -76,76 +77,78 @@ export class AudioEngine {
   private scheduleNote(pulse: PulseConfig, beatNumber: number, time: number) {
     if (!this.audioContext) return;
 
-    const envelope = this.audioContext.createGain();
+    const isEnabled = pulse.enabled !== false;
     const isAccent = beatNumber === 0;
-    
-    // Use individual beat intensity, default to 0.5 if not provided
     const beatIntensity = pulse.beatIntensities[beatNumber] ?? 0.5;
     const gainValue = beatIntensity;
 
-    envelope.gain.setValueAtTime(0, time);
-    envelope.gain.linearRampToValueAtTime(gainValue, time + 0.005);
-    envelope.gain.exponentialRampToValueAtTime(0.001, time + (pulse.soundType === 'bell' ? 0.4 : 0.1));
+    if (isEnabled) {
+      const envelope = this.audioContext.createGain();
+      
+      envelope.gain.setValueAtTime(0, time);
+      envelope.gain.linearRampToValueAtTime(gainValue, time + 0.005);
+      envelope.gain.exponentialRampToValueAtTime(0.001, time + (pulse.soundType === 'bell' ? 0.4 : 0.1));
 
-    if (pulse.soundType === 'sine' || !pulse.soundType) {
-      const osc = this.audioContext.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.value = isAccent ? pulse.frequency * 1.5 : pulse.frequency;
-      osc.connect(envelope);
-      osc.start(time);
-      osc.stop(time + 0.1);
-    } else if (pulse.soundType === 'wood') {
-      const osc = this.audioContext.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.value = isAccent ? 800 : 600;
-      
-      const noise = this.audioContext.createBufferSource();
-      const bufferSize = this.audioContext.sampleRate * 0.02;
-      const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-      noise.buffer = buffer;
-      
-      const noiseGain = this.audioContext.createGain();
-      noiseGain.gain.setValueAtTime(0.3 * gainValue, time);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.01);
-      
-      noise.connect(noiseGain);
-      noiseGain.connect(envelope);
-      osc.connect(envelope);
-      
-      noise.start(time);
-      osc.start(time);
-      osc.stop(time + 0.05);
-    } else if (pulse.soundType === 'bell') {
-      [1, 2.5, 3.2].forEach(harmonic => {
+      if (pulse.soundType === 'sine' || !pulse.soundType) {
         const osc = this.audioContext.createOscillator();
         osc.type = 'sine';
-        osc.frequency.value = (isAccent ? pulse.frequency * 1.5 : pulse.frequency) * harmonic;
-        const harmGain = this.audioContext.createGain();
-        harmGain.gain.value = 1 / harmonic;
-        osc.connect(harmGain);
-        harmGain.connect(envelope);
+        osc.frequency.value = isAccent ? pulse.frequency * 1.5 : pulse.frequency;
+        osc.connect(envelope);
         osc.start(time);
-        osc.stop(time + 0.5);
-      });
-    } else if (pulse.soundType === 'electronic') {
-      const osc = this.audioContext.createOscillator();
-      osc.type = 'square';
-      osc.frequency.value = isAccent ? 150 : 100;
-      
-      const filter = this.audioContext.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(2000, time);
-      filter.frequency.exponentialRampToValueAtTime(100, time + 0.05);
-      
-      osc.connect(filter);
-      filter.connect(envelope);
-      osc.start(time);
-      osc.stop(time + 0.1);
-    }
+        osc.stop(time + 0.1);
+      } else if (pulse.soundType === 'wood') {
+        const osc = this.audioContext.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.value = isAccent ? 800 : 600;
+        
+        const noise = this.audioContext.createBufferSource();
+        const bufferSize = this.audioContext.sampleRate * 0.02;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        noise.buffer = buffer;
+        
+        const noiseGain = this.audioContext.createGain();
+        noiseGain.gain.setValueAtTime(0.3 * gainValue, time);
+        noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.01);
+        
+        noise.connect(noiseGain);
+        noiseGain.connect(envelope);
+        osc.connect(envelope);
+        
+        noise.start(time);
+        osc.start(time);
+        osc.stop(time + 0.05);
+      } else if (pulse.soundType === 'bell') {
+        [1, 2.5, 3.2].forEach(harmonic => {
+          const osc = this.audioContext.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = (isAccent ? pulse.frequency * 1.5 : pulse.frequency) * harmonic;
+          const harmGain = this.audioContext.createGain();
+          harmGain.gain.value = 1 / harmonic;
+          osc.connect(harmGain);
+          harmGain.connect(envelope);
+          osc.start(time);
+          osc.stop(time + 0.5);
+        });
+      } else if (pulse.soundType === 'electronic') {
+        const osc = this.audioContext.createOscillator();
+        osc.type = 'square';
+        osc.frequency.value = isAccent ? 150 : 100;
+        
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(2000, time);
+        filter.frequency.exponentialRampToValueAtTime(100, time + 0.05);
+        
+        osc.connect(filter);
+        filter.connect(envelope);
+        osc.start(time);
+        osc.stop(time + 0.1);
+      }
 
-    envelope.connect(this.audioContext.destination);
+      envelope.connect(this.audioContext.destination);
+    }
 
     if (this.onPulseBeat) this.onPulseBeat(pulse.id, beatNumber, time);
   }

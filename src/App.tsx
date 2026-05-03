@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Play, Square, Plus, Minus, Activity, Zap, Volume2, Trash2, Settings2, Github, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'motion/react';
+import { Play, Square, Plus, Minus, Activity, Zap, Volume2, Trash2, Settings2, Github, Sparkles, GripVertical, Power } from 'lucide-react';
 import { AudioEngine, PulseConfig } from './lib/audioEngine.ts';
 
 // --- Components ---
@@ -71,15 +71,18 @@ const BPMDisplay = ({ bpm, onBpmChange }: { bpm: number; onBpmChange: (v: number
 };
 
 interface PolyrhythmControlProps {
-  key?: string;
   pulse: PulseConfig;
   onChange: (p: PulseConfig) => void;
   onRemove: () => void;
   canRemove: boolean;
+  activeBeat?: number;
+  key?: string;
 }
 
-const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove }: PolyrhythmControlProps) => {
+const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove, activeBeat }: PolyrhythmControlProps) => {
   const [showSettings, setShowSettings] = useState(false);
+  const dragControls = useDragControls();
+  const isEnabled = pulse.enabled !== false;
 
   const handleBeatsChange = (delta: number) => {
     const newBeats = Math.max(1, pulse.beats + delta);
@@ -101,31 +104,78 @@ const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove }: PolyrhythmC
   };
 
   return (
-    <motion.div 
-      layout
+    <Reorder.Item 
+      value={pulse}
+      id={pulse.id}
+      dragListener={false}
+      dragControls={dragControls}
       initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
+      animate={{ 
+        opacity: isEnabled ? 1 : 0.5, 
+        scale: 1,
+        borderColor: (activeBeat !== undefined && isEnabled) ? pulse.color : '#27272a',
+        boxShadow: (activeBeat !== undefined && isEnabled)
+          ? `0 0 20px ${pulse.color}33` 
+          : '0 0 0px transparent',
+        filter: isEnabled ? 'grayscale(0%)' : 'grayscale(100%)',
+        zIndex: activeBeat !== undefined ? 1 : 0
+      }}
       exit={{ opacity: 0, scale: 0.9 }}
-      className="flex flex-col bg-zinc-900 rounded-2xl border border-zinc-800 w-full relative group overflow-hidden"
+      transition={{ duration: 0.2 }}
+      className={`flex flex-col bg-zinc-900 rounded-2xl border w-full relative group overflow-hidden ${!isEnabled ? 'opacity-50' : ''}`}
     >
-      <div className="p-3 flex flex-col items-center">
-        {canRemove && (
-          <button 
-            onClick={onRemove}
-            className="absolute top-1 right-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-2 text-zinc-500 hover:text-red-500 active:text-red-400"
-            aria-label="Remove Pulse"
-          >
-            <Trash2 size={16} />
-          </button>
+      <AnimatePresence>
+        {(activeBeat !== undefined && isEnabled) && (
+          <motion.div
+            key={`${pulse.id}-${activeBeat}`}
+            initial={{ opacity: 0.8, inset: -1 }}
+            animate={{ opacity: 0, inset: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="absolute pointer-events-none rounded-2xl border-2 z-10"
+            style={{ 
+              borderColor: pulse.color,
+              boxShadow: `0 0 15px ${pulse.color}, inset 0 0 10px ${pulse.color}` 
+            }}
+          />
         )}
+      </AnimatePresence>
+
+      <div className="p-3 flex flex-col items-center">
+        <div className="absolute top-1 right-1 flex items-center lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
+          <button 
+            onClick={() => onChange({ ...pulse, enabled: !isEnabled })}
+            className={`p-2 transition-colors ${isEnabled ? 'text-zinc-500 hover:text-green-500' : 'text-zinc-700 hover:text-zinc-500'}`}
+            aria-label={isEnabled ? "Mute Pulse" : "Enable Pulse"}
+          >
+            <Power size={14} className={isEnabled ? 'fill-green-500/20' : ''} />
+          </button>
+          {canRemove && (
+            <button 
+              onClick={onRemove}
+              className="p-2 text-zinc-500 hover:text-red-500 active:text-red-400"
+              aria-label="Remove Pulse"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
         
-        <button 
-          onClick={() => setShowSettings(!showSettings)}
-          className={`absolute top-1 left-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity p-2 ${showSettings ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300 active:text-white'}`}
-          aria-label="Pulse Settings"
-        >
-          <Settings2 size={16} />
-        </button>
+        <div className="absolute top-1 left-1 flex items-center gap-1">
+          <div 
+            className="p-2 text-zinc-700 cursor-grab active:cursor-grabbing hover:text-zinc-500 transition-colors"
+            onPointerDown={(e) => dragControls.start(e)}
+          >
+            <GripVertical size={14} />
+          </div>
+          <button 
+            onClick={() => setShowSettings(!showSettings)}
+            className={`p-2 transition-opacity ${showSettings ? 'text-orange-500' : 'text-zinc-500 hover:text-zinc-300 active:text-white'}`}
+            aria-label="Pulse Settings"
+          >
+            <Settings2 size={16} />
+          </button>
+        </div>
 
         <span className="text-zinc-500 text-[9px] uppercase tracking-wider mb-1 font-mono">Pulse {pulse.beats}</span>
         <div className="flex flex-col items-center gap-1">
@@ -217,11 +267,14 @@ const PolyrhythmControl = ({ pulse, onChange, onRemove, canRemove }: PolyrhythmC
           <div 
             key={i} 
             className="h-full flex-1 border-r border-black/10 last:border-0" 
-            style={{ backgroundColor: pulse.color, opacity: intensity * 0.7 }} 
+            style={{ 
+              backgroundColor: isEnabled ? pulse.color : '#3f3f46', 
+              opacity: isEnabled ? intensity * 0.7 : 0.3 
+            }} 
           />
         ))}
       </div>
-    </motion.div>
+    </Reorder.Item>
   );
 };
 
@@ -248,10 +301,11 @@ const GeometricVisualizer = ({ pulses, activeBeats }: { pulses: PulseConfig[]; a
           const radius = getPulseRadius(idx);
           if (radius <= 0) return null;
           const points = getPoints(pulse.beats, radius);
-          const activeIndex = activeBeats[pulse.id];
+          const isEnabled = pulse.enabled !== false;
+          const activeIndex = isEnabled ? activeBeats[pulse.id] : undefined;
 
           return (
-            <g key={pulse.id}>
+            <g key={pulse.id} opacity={isEnabled ? 1 : 0.2}>
               {/* Ring */}
               <circle cx="0" cy="0" r={radius} fill="none" stroke="#27272a" strokeWidth="1" strokeDasharray="4 4" opacity={0.5} />
               
@@ -435,7 +489,13 @@ export default function App() {
               </button>
             </div>
             
-            <div id="pulse-controls-grid" className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <Reorder.Group 
+              axis="x" 
+              values={pulses} 
+              onReorder={setPulses}
+              className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+              id="pulse-controls-grid"
+            >
               <AnimatePresence mode="popLayout">
                 {pulses.map((pulse) => (
                   <PolyrhythmControl 
@@ -444,10 +504,11 @@ export default function App() {
                     onChange={updatePulse} 
                     onRemove={() => removePulse(pulse.id)}
                     canRemove={pulses.length > 1}
+                    activeBeat={activeBeats[pulse.id]}
                   />
                 ))}
               </AnimatePresence>
-            </div>
+            </Reorder.Group>
           </div>
 
           <button
