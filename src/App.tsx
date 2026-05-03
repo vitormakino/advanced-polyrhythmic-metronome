@@ -316,7 +316,9 @@ export default function App() {
     }
   }, [bpm, pulses]);
 
-  const toggleMetronome = () => {
+  const [isAudioUnlocked, setIsAudioUnlocked] = useState(true);
+
+  const toggleMetronome = async () => {
     if (!engineRef.current) return;
 
     if (isRunning) {
@@ -324,6 +326,15 @@ export default function App() {
       setIsRunning(false);
       setActiveBeats({});
     } else {
+      // Ensure audio context is unlocked/resumed (crucial for iOS)
+      const unlocked = await engineRef.current.unlock();
+      setIsAudioUnlocked(unlocked);
+      
+      if (!unlocked) {
+        console.warn('AudioContext failed to unlock on first attempt.');
+        // Don't stop here, try to start anyway as some browsers might just work
+      }
+      
       engineRef.current.setCallback((id, beat) => {
         setActiveBeats(prev => ({ ...prev, [id]: beat }));
       });
@@ -381,6 +392,23 @@ export default function App() {
           </header>
 
           <BPMDisplay bpm={bpm} onBpmChange={setBpm} />
+
+          <AnimatePresence>
+            {!isAudioUnlocked && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-xl flex items-center gap-3"
+              >
+                <Sparkles className="text-orange-500 shrink-0" size={16} />
+                <p className="text-[11px] text-orange-200/80 leading-tight">
+                  <span className="font-bold text-orange-500 uppercase block mb-0.5">Audio might be restricted</span>
+                  Tap START again to enable sound. On iPhone, ensure the <span className="text-orange-500 underline">physical silent switch</span> is OFF.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="space-y-4">
             <div className="flex justify-between items-center px-1">

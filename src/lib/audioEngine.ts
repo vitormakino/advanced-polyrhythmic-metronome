@@ -35,8 +35,32 @@ export class AudioEngine {
     if (!this.audioContext) {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     }
-    if (this.audioContext.state === 'suspended') {
-      this.audioContext.resume();
+  }
+
+  /**
+   * Specifically for iOS/Safari: Unlocks the AudioContext by resuming it and playing a silent buffer
+   * during a user gesture.
+   */
+  public async unlock(): Promise<boolean> {
+    this.init();
+    if (!this.audioContext) return false;
+
+    try {
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+      
+      // Play a short silent buffer to unlock the audio system
+      const buffer = this.audioContext.createBuffer(1, 1, 22050);
+      const source = this.audioContext.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.audioContext.destination);
+      source.start(0);
+      
+      return this.audioContext.state === 'running';
+    } catch (e) {
+      console.error('Failed to unlock audio context:', e);
+      return false;
     }
   }
 
