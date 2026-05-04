@@ -37,6 +37,22 @@ export default defineConfig(({mode}) => {
               type: 'image/svg+xml',
               purpose: 'maskable'
             }
+          ],
+          screenshots: [
+            {
+              src: 'images/screenshot-wide.png',
+              sizes: '1071x758',
+              type: 'image/png',
+              form_factor: 'wide',
+              label: 'Polyrhythm Metronome Desktop'
+            },
+            {
+              src: 'images/screenshot-narrow.png',
+              sizes: '515x661',
+              type: 'image/png',
+              form_factor: 'narrow',
+              label: 'Polyrhythm Metronome Mobile'
+            }
           ]
         }
       })
