@@ -13,8 +13,9 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'script',
-        includeAssets: ['icon.svg'],
+        injectRegister: 'inline',
+        manifestFilename: 'manifest.json',
+        includeAssets: ['images/icon.svg'],
         manifest: {
           name: 'Advanced Polyrhythmic Metronome',
           short_name: 'Metronome',
@@ -22,6 +23,8 @@ export default defineConfig(({mode}) => {
           theme_color: '#09090b',
           background_color: '#09090b',
           display: 'standalone',
+          scope: '/advanced-polyrhythmic-metronome/',
+          start_url: '/advanced-polyrhythmic-metronome/',
           icons: [
             {
               src: 'images/icon.svg',
@@ -38,16 +41,16 @@ export default defineConfig(({mode}) => {
           ],
           screenshots: [
             {
-              src: 'images/screenshot-wide.jpg',
-              sizes: '1280x720',
-              type: 'image/jpeg',
+              src: 'images/screenshot-wide.png',
+              sizes: '1071x758',
+              type: 'image/png',
               form_factor: 'wide',
               label: 'Polyrhythm Metronome Desktop'
             },
             {
-              src: 'images/screenshot-narrow.jpg',
-              sizes: '720x1280',
-              type: 'image/jpeg',
+              src: 'images/screenshot-narrow.png',
+              sizes: '515x661',
+              type: 'image/png',
               form_factor: 'narrow',
               label: 'Polyrhythm Metronome Mobile'
             }
