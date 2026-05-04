@@ -27,9 +27,41 @@ export class AudioEngine {
   private currentPulseBeats: Map<string, number> = new Map();
   
   private onPulseBeat?: (pulseId: string, beat: number, time: number) => void;
+  private debugLogs: string[] = [];
+  private onDebugUpdate?: (logs: string[]) => void;
 
   constructor() {
     this.audioContext = null;
+  }
+
+  public setDebugCallback(cb: (logs: string[]) => void) {
+    this.onDebugUpdate = cb;
+  }
+
+  private addLog(msg: string) {
+    const timestamp = new Date().toLocaleTimeString();
+    this.debugLogs = [`[${timestamp}] ${msg}`, ...this.debugLogs].slice(0, 5);
+    if (this.onDebugUpdate) this.onDebugUpdate(this.debugLogs);
+  }
+
+  public async testSound() {
+    this.init();
+    if (!this.audioContext) return;
+    this.addLog("Testing direct sound...");
+    try {
+      await this.unlock();
+      const osc = this.audioContext.createOscillator();
+      const gain = this.audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(this.audioContext.destination);
+      gain.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.5);
+      osc.start();
+      osc.stop(this.audioContext.currentTime + 0.5);
+      this.addLog("Direct sound triggered (osc start/stop)");
+    } catch (e) {
+      this.addLog("Direct test failed: " + e);
+    }
   }
 
   private init() {
@@ -43,26 +75,31 @@ export class AudioEngine {
    * during a user gesture.
    */
   public async unlock(): Promise<boolean> {
-    this.init();
-    if (!this.audioContext) return false;
+  this.init();
+  if (!this.audioContext) return false;
 
-    try {
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
-      
-      // Play a short silent buffer to unlock the audio system
-      const buffer = this.audioContext.createBuffer(1, 1, 22050);
-      const source = this.audioContext.createBufferSource();
-      source.buffer = buffer;
-      source.connect(this.audioContext.destination);
-      source.start(0);
-      
-      return this.audioContext.state === 'running';
-    } catch (e) {
-      console.error('Failed to unlock audio context:', e);
-      return false;
+  this.addLog(`Unlocking ctx (State: ${this.audioContext.state})...`);
+
+  try {
+    if (this.audioContext.state !== 'running') {
+      await this.audioContext.resume(); // 👈 primeiro
     }
+
+    const buffer = this.audioContext.createBuffer(1, 1, 22050);
+    const source = this.audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(this.audioContext.destination);
+    source.start(0); // 👈 depois
+
+    return this.audioContext.state === 'running';
+  } catch (e) {
+    console.error('Failed to unlock audio context:', e);
+    return false;
+  }
+}
+
+  public getContextState(): AudioContextState | 'not-initialized' {
+    return this.audioContext ? this.audioContext.state : 'not-initialized';
   }
 
   public setParams(bpm: number, pulses: PulseConfig[]) {
@@ -83,6 +120,7 @@ export class AudioEngine {
     const gainValue = beatIntensity;
 
     if (isEnabled) {
+      if (beatNumber === 0) this.addLog(`Beat triggered: Pulse ${pulse.id.substring(0,4)}`);
       const envelope = this.audioContext.createGain();
       
       envelope.gain.setValueAtTime(0, time);
@@ -192,21 +230,37 @@ export class AudioEngine {
     this.timerID = window.setTimeout(() => this.polyrhythmScheduler(), this.lookahead);
   }
 
-  public start() {
-    this.init();
-    if (!this.audioContext) return;
-    
-    this.nextPulseTimes.clear();
-    this.currentPulseBeats.clear();
-    
-    const startTime = this.audioContext.currentTime + 0.05;
-    this.pulses.forEach(p => {
-      this.nextPulseTimes.set(p.id, startTime);
-      this.currentPulseBeats.set(p.id, 0);
-    });
-    
-    this.polyrhythmScheduler();
+public async start() {
+  this.init();
+  if (!this.audioContext) return;
+
+  if (this.audioContext.state !== 'running') {
+    this.addLog('Context not running, trying resume...');
+    try {
+      await this.audioContext.resume();
+    } catch {
+      this.addLog('Resume failed');
+      return;
+    }
   }
+
+  if (this.audioContext.state !== 'running') {
+    this.addLog('Context still not running');
+    return;
+  }
+
+  this.nextPulseTimes.clear();
+  this.currentPulseBeats.clear();
+
+  const startTime = this.audioContext.currentTime + 0.05;
+
+  this.pulses.forEach(p => {
+    this.nextPulseTimes.set(p.id, startTime);
+    this.currentPulseBeats.set(p.id, 0);
+  });
+
+  this.polyrhythmScheduler();
+}
 
   public stop() {
     if (this.timerID) {

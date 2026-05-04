@@ -368,13 +368,39 @@ export default function App() {
   ]);
   const [isRunning, setIsRunning] = useState(false);
   const [activeBeats, setActiveBeats] = useState<Record<string, number>>({});
+  const [audioState, setAudioState] = useState<string>('unknown');
+  const [isMobile, setIsMobile] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
 
   const engineRef = useRef<AudioEngine | null>(null);
 
   useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
     engineRef.current = new AudioEngine();
+    
+    engineRef.current.setDebugCallback((logs) => {
+      setDebugLogs([...logs]);
+    });
+    
+    const checkState = () => {
+      if (engineRef.current) {
+        setAudioState(engineRef.current.getContextState());
+      }
+    };
+    
+    checkState(); // Initial check
+    const interval = setInterval(checkState, 1000);
+    
     return () => {
       engineRef.current?.stop();
+      clearInterval(interval);
+      window.removeEventListener('resize', checkMobile);
     };
   }, []);
 
@@ -383,8 +409,6 @@ export default function App() {
       engineRef.current.setParams(bpm, pulses);
     }
   }, [bpm, pulses]);
-
-  const [isAudioUnlocked, setIsAudioUnlocked] = useState(true);
 
   const toggleMetronome = async () => {
     if (!engineRef.current) return;
@@ -395,13 +419,8 @@ export default function App() {
       setActiveBeats({});
     } else {
       // Ensure audio context is unlocked/resumed (crucial for iOS)
-      const unlocked = await engineRef.current.unlock();
-      setIsAudioUnlocked(unlocked);
-      
-      if (!unlocked) {
-        console.warn('AudioContext failed to unlock on first attempt.');
-        // Don't stop here, try to start anyway as some browsers might just work
-      }
+      await engineRef.current.unlock();
+      setAudioState(engineRef.current.getContextState());
       
       engineRef.current.setCallback((id, beat) => {
         setActiveBeats(prev => ({ ...prev, [id]: beat }));
@@ -409,6 +428,18 @@ export default function App() {
       engineRef.current.start();
       setIsRunning(true);
     }
+  };
+
+  const handleFixAudio = async () => {
+    if (!engineRef.current) return;
+    await engineRef.current.unlock();
+    setAudioState(engineRef.current.getContextState());
+  };
+
+  const handleTestSound = async () => {
+    if (!engineRef.current) return;
+    await engineRef.current.testSound();
+    setAudioState(engineRef.current.getContextState());
   };
 
   const addPulse = () => {
@@ -462,17 +493,53 @@ export default function App() {
           <BPMDisplay bpm={bpm} onBpmChange={setBpm} />
 
           <AnimatePresence>
-            {!isAudioUnlocked && (
+            {(isMobile && audioState !== 'running') && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="bg-orange-500/10 border border-orange-500/20 p-3 rounded-xl flex items-center gap-3"
+                className="bg-orange-500/10 border border-orange-500/20 p-4 rounded-xl flex flex-col gap-3"
               >
-                <Sparkles className="text-orange-500 shrink-0" size={16} />
-                <p className="text-[11px] text-orange-200/80 leading-tight">
-                  <span className="font-bold text-orange-500 uppercase block mb-0.5">Audio might be restricted</span>
-                  Tap START again to enable sound. On iPhone, ensure the <span className="text-orange-500 underline">physical silent switch</span> is OFF.
+                <div className="flex items-center gap-3">
+                  <Sparkles className="text-orange-500 shrink-0" size={16} />
+                  <p className="text-[11px] text-orange-200/80 leading-tight">
+                    <span className="font-bold text-orange-500 uppercase block mb-0.5">Audio is blocked</span>
+                    Mobile browsers require a direct interaction to enable sound.
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleFixAudio}
+                    className="flex-1 bg-orange-500 hover:bg-orange-400 text-black text-[10px] font-bold py-2 px-4 rounded-lg transition-colors uppercase tracking-wider"
+                  >
+                    Resync Audio
+                  </button>
+                  <button 
+                    onClick={handleTestSound}
+                    className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-[10px] font-bold py-2 px-4 rounded-lg transition-colors uppercase tracking-wider"
+                  >
+                    Test Beep
+                  </button>
+                </div>
+                
+                <div className="flex flex-col gap-1 border-t border-orange-500/10 pt-2">
+                  <button 
+                    onClick={() => setShowDebug(!showDebug)}
+                    className="text-[8px] text-orange-500/50 hover:text-orange-500 uppercase text-left self-start"
+                  >
+                    {showDebug ? 'Hide Logs' : 'Show Logs'}
+                  </button>
+                  
+                  {showDebug && (
+                    <div className="bg-black/40 p-2 rounded text-[9px] font-mono text-orange-300/60 max-h-24 overflow-y-auto">
+                      {debugLogs.length === 0 ? "No logs yet..." : debugLogs.map((log, i) => (
+                        <div key={i}>{log}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-[9px] text-orange-500/60 text-center italic">
+                  Note: Ensure physical silent switch is OFF on iPhone.
                 </p>
               </motion.div>
             )}
@@ -573,6 +640,13 @@ export default function App() {
           <Sparkles size={14} className="text-orange-500/50" />
           <span>Built with Google AI Studio</span>
         </div>
+        <div className="w-1.5 h-1.5 rounded-full bg-zinc-800 hidden sm:block" />
+        <button 
+          onClick={() => setAudioState('manual_debug')} 
+          className="hover:text-white transition-colors"
+        >
+          ENGINE STATUS
+        </button>
       </footer>
     </div>
   );
