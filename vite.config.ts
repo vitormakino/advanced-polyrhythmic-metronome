@@ -13,7 +13,6 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        injectRegister: 'inline',
         manifestFilename: 'manifest.json',
         includeAssets: ['images/icon.svg'],
         manifest: {
@@ -30,29 +29,13 @@ export default defineConfig(({mode}) => {
               src: 'images/icon.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
-              purpose: 'any maskable'
+              purpose: 'any'
             },
             {
               src: 'images/icon.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
-              purpose: 'monochrome'
-            }
-          ],
-          screenshots: [
-            {
-              src: 'images/screenshot-wide.png',
-              sizes: '1071x758',
-              type: 'image/png',
-              form_factor: 'wide',
-              label: 'Polyrhythm Metronome Desktop'
-            },
-            {
-              src: 'images/screenshot-narrow.png',
-              sizes: '515x661',
-              type: 'image/png',
-              form_factor: 'narrow',
-              label: 'Polyrhythm Metronome Mobile'
+              purpose: 'maskable'
             }
           ]
         }
