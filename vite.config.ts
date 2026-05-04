@@ -24,23 +24,30 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           icons: [
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/3233/3233497.png',
+              src: 'images/icon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            },
+            {
+              src: 'images/icon.svg',
+              sizes: '512x512',
+              type: 'image/svg+xml',
+              purpose: 'monochrome'
             }
           ],
           screenshots: [
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/3233/3233497.png',
-              sizes: '512x512',
-              type: 'image/png',
+              src: 'images/screenshot-wide.jpg',
+              sizes: '1280x720',
+              type: 'image/jpeg',
               form_factor: 'wide',
               label: 'Polyrhythm Metronome Desktop'
             },
             {
-              src: 'https://cdn-icons-png.flaticon.com/512/3233/3233497.png',
-              sizes: '512x512',
-              type: 'image/png',
+              src: 'images/screenshot-narrow.jpg',
+              sizes: '720x1280',
+              type: 'image/jpeg',
               form_factor: 'narrow',
               label: 'Polyrhythm Metronome Mobile'
             }
