@@ -24,14 +24,14 @@ export default defineConfig(({mode}) => {
           display: 'standalone',
           icons: [
             {
-              src: 'icon.svg',
+              src: 'https://cdn-icons-png.flaticon.com/512/3233/3233497.png',
               sizes: '192x192',
-              type: 'image/svg+xml'
+              type: 'image/png'
             },
             {
-              src: 'icon.svg',
+              src: 'https://cdn-icons-png.flaticon.com/512/3233/3233497.png',
               sizes: '512x512',
-              type: 'image/svg+xml'
+              type: 'image/png'
             }
           ]
         }
