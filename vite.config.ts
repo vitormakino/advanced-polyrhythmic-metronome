@@ -14,7 +14,7 @@ export default defineConfig(({mode}) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifestFilename: 'manifest.json',
-        includeAssets: ['images/icon.svg'],
+        includeAssets: ['images/icon.svg','images/screenshot-wide.png','images/screenshot-narrow.png'],
         manifest: {
           name: 'Advanced Polyrhythmic Metronome',
           short_name: 'Metronome',
