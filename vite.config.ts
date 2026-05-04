@@ -7,12 +7,13 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
-    base: '/advanced-polyrhythmic-metronome/',
+    base: '/',
     plugins: [
       react(), 
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'script',
         includeAssets: ['icon.svg'],
         manifest: {
           name: 'Advanced Polyrhythmic Metronome',
@@ -31,12 +32,6 @@ export default defineConfig(({mode}) => {
               src: 'icon.svg',
               sizes: '512x512',
               type: 'image/svg+xml'
-            },
-            {
-              src: 'icon.svg',
-              sizes: '512x512',
-              type: 'image/svg+xml',
-              purpose: 'any maskable'
             }
           ]
         }
